@@ -7,6 +7,7 @@ var fs = require('fs');
 var await = require('await');
 var pdf = require('html-pdf');
 var options = { "width": "11.7in", "height": "16.5in", "border": "1in" };
+var delay = require("delay");
 
 var parseXlsx = require('excel');
 var dataObj = {
@@ -61,7 +62,7 @@ app.post('/upload', function(req, res) {
 
 
 app.get('/gr', function(req, res) {
-    var response = "";
+    var response = {};
     parseXlsx('uploads/orderlist.xlsx', function(err, data) {
         if (err) throw err;
         var map = {};
@@ -107,14 +108,21 @@ app.get('/gr', function(req, res) {
             result = result.replace("{{consumer-bill-amount}}", total.toFixed(2));
             //console.log(result) 
             console.log(key);
+            for (var i = 0; i < 3; i++) {
 
-            pdf.create(result, options).toFile('./uploads/invoices/invoice_' + key + '_' + consumer_name + '_' + date + '.pdf', function(err, res) {
-                if (err) return console.log(err);
-                console.log(res);
-                // { filename: '/app/businesscard.pdf' }
-                response += (res + "<br/>");
-                // fs.appendFileSync('uploads/list.txt', res);
-            })
+                if (response[key] != 1) {
+                    pdf.create(result, options).toFile('./uploads/invoices/invoice_' + key + '_' + consumer_name + '_' + date + '.pdf', function(err, res) {
+                        if (err) return console.log(err);
+                        console.log(res);
+                        // { filename: '/app/businesscard.pdf' }
+                        response[key] = 1;
+                        // fs.appendFileSync('uploads/list.txt', res);
+                    });
+                }
+                delay(200);
+
+            }
+
 
         };
 

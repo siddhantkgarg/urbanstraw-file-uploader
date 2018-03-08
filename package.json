@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "await": "^0.2.6",
+    "delay": "^2.0.0",
     "excel": "^0.1.7",
     "express": "^4.13.3",
     "formidable": "^1.0.17",
