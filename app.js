@@ -13,13 +13,13 @@ var dataObj = {
   item : "",
   quantity:"",
   cost:"",
-  amountt:"",
+  amount:"",
   date:"",
   id:"",
   name:"",
   deliveryStatus:"",
-  paymentstatus:"",
-  deliveryaddress:""
+  deliveryaddress:"",
+  mobileno:""
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -65,8 +65,9 @@ app.get('/gr',function(req,res){
     parseXlsx('uploads/orderlist.xlsx', function(err, data) {
   if(err) throw err;
   var map = [];
+  console.log(data);
   data.forEach(function(object){
-    if(object[5]!=="" && object[5]!="ID"){
+    if(object[5]!=="" && object[5]!=="ID"){
       map[object[5]] = map[object[5]] || [];
       map[object[5]].push(object);  
     } 
@@ -83,10 +84,15 @@ app.get('/gr',function(req,res){
       person.forEach(function(items){
         date = formatDate(new Date((items[4] - (25567 + 1))*86400*1000));
         consumer_name = items[6];
-        consumer_address = items[9];
-        consumer_mobile=items[10];
+        consumer_address = items[8];
+        consumer_mobile=items[9];
+        item_name = items[0];
+        item_quantity=items[1];
+        item_price = items[2];
+        resultant_price=items[3];
+
         total = total + parseFloat(items[3]) ;
-        template+='<tr><td>'+sno+'</td><td>'+items[0]+'</td><td>'+items[1]+'</td><td> &#8377; '+items[2]+'</td><td> &#8377; '+items[3]+'</td></tr>';
+        template+='<tr><td>'+sno+'</td><td>'+item_name+'</td><td>'+item_quantity+'</td><td> &#8377; '+item_price+'</td><td> &#8377; '+resultant_price+'</td></tr>';
         sno++;
       });
       var html = fs.readFileSync('./templates/invoice-template.html','utf8');
