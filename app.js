@@ -3,10 +3,11 @@ var app = express();
 var path = require('path');
 var formidable = require('formidable');
 var fs = require('fs');
+var Sync = require('sync');
 
 var pdf = require('html-pdf');
 var options = { "width": "11.7in", "height": "16.5in", "border": "1in" };
-
+var invoice_util = require('./invoice');
 var parseXlsx = require('excel');
 var dataObj = {
     item: "",
@@ -20,7 +21,7 @@ var dataObj = {
     deliveryaddress: "",
     mobileno: ""
 }
-
+const invoice_upload_path = './uploads/invoices/';
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', function(req, res) {
@@ -60,6 +61,7 @@ app.post('/upload', function(req, res) {
 
 
 app.get('/gr', function(req, res) {
+
     parseXlsx('uploads/orderlist.xlsx', function(err, data) {
         if (err) throw err;
         var map = {};
@@ -71,8 +73,8 @@ app.get('/gr', function(req, res) {
             }
         });
 
-        for (var key in map) {
-            console.log(key);
+        for (var personid in map) {
+            console.log(personid);
             var template = "";
             var sno = 1;
             var consumer_name = "";
@@ -80,47 +82,55 @@ app.get('/gr', function(req, res) {
             var consumer_mobile = "";
             var total = 0;
             var date = "";
-            var person = map[key];
-            // console.log(person);
-            person.forEach(function(items) {
-                date = formatDate(new Date((items[4] - (25567 + 1)) * 86400 * 1000));
-                consumer_name = items[6];
-                consumer_address = items[8];
-                consumer_mobile = items[9];
-                item_name = items[0];
-                item_quantity = items[1];
-                item_price = items[2];
-                resultant_price = items[3];
+            var item_list = map[personid];
+            var exceldate = "";
+            // console.log(item_list);
 
-                total = total + parseFloat(items[3]);
-                template += '<tr><td>' + sno + '</td><td>' + item_name + '</td><td>' + item_quantity + '</td><td> &#8377; ' + item_price + '</td><td> &#8377; ' + resultant_price + '</td></tr>';
-                sno++;
-            });
-            var html = fs.readFileSync('./templates/invoice-template.html', 'utf8');
-            var result = html.replace("{{consumer-items}}", template);
-            result = result.replace("{{consumer-name}}", consumer_name);
-            result = result.replace("{{consumer-address}}", consumer_address);
-            result = result.replace("{{consumer-mobile}}", consumer_mobile);
-            result = result.replace("{{consumer-total-amount}}", total.toFixed(2));
-            result = result.replace("{{consumer-bill-amount}}", total.toFixed(2));
-            //console.log(result) 
-            result = result || {};
-            pdf.create(result, options).toFile('./uploads/invoices/invoice_' + key + '_' + consumer_name + '_' + date + '.pdf', function(err, res) {
-                if (err) return console.log(err);
-                console.log(res);
-                // { filename: '/app/businesscard.pdf' }
-                // fs.appendFileSync('uploads/list.txt', res);
-            });
+            var invoice_items = [];
 
+            item_list.forEach(function(item) {
+                var invoice_item = {};
+                date = formatDate(new Date((item[4] - (25567 + 1)) * 86400 * 1000));
+                exceldate = item[4];
+                consumer_name = item[6];
+                consumer_address = item[8];
+                consumer_mobile = item[9];
+                item_name = item[0];
+                item_quantity = item[1];
+                item_price = item[2];
+                resultant_price = item[3];
+                invoice_item.name = item_name;
+                invoice_item.quantity = item_quantity;
+                invoice_item.unit_cost = item_price;
+                invoice_items.push(invoice_item);
+            });
+            var invoice_data = {
+                logo: "http://urbanstraw.com/dist/img/logo.png",
+                header: 'Purchase Reciept',
+                from: "Urban Straw",
+                to: consumer_name + '\r\n' + consumer_address + '\r\n' + consumer_mobile,
+                currency: "INR",
+                number: "US2018" + (personid) + "" + exceldate,
+                payment_terms: "",
+                notes: "This is not to be treated as tax invoice.",
+                quantity_header: 'Quantity(kg)',
+                balance_title: 'Amount ',
+                items: invoice_items,
+                date: date
+            };
+            var invoice_name = (consumer_name + date + invoice_data.number + '.pdf');
+            invoice_name.trim();
+
+            invoice_util.generateInvoice(invoice_data, invoice_upload_path + invoice_name, function(msg) {
+
+            }, function(err) {
+                console.log(err)
+            });
         };
-
     });
     res.end("Pdfs will be generated shortly. Visit : http://urbanstraw.com:3030 to download files");
 });
 
-app.get('/upload', function(req, res) {
-
-})
 var server = app.listen(3000, function() {
     console.log('Server listening on port 3000');
 });
@@ -138,5 +148,5 @@ function formatDate(date) {
     var monthIndex = date.getMonth();
     var year = date.getFullYear();
 
-    return day + '_' + monthNames[monthIndex] + '_' + year;
+    return day + ' ' + monthNames[monthIndex] + ' ' + year;
 }
