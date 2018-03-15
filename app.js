@@ -3,7 +3,6 @@ var app = express();
 var path = require('path');
 var formidable = require('formidable');
 var fs = require('fs');
-var Sync = require('sync');
 
 var pdf = require('html-pdf');
 var options = { "width": "11.7in", "height": "16.5in", "border": "1in" };
@@ -23,6 +22,8 @@ var dataObj = {
 }
 const invoice_upload_path = './uploads/invoices/';
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/static', express.static('static'))
+app.use('/uploads/invoices', express.static('download'))
 
 app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, 'views/index.html'));
@@ -59,6 +60,70 @@ app.post('/upload', function(req, res) {
     form.parse(req);
 });
 
+
+app.get('/order-manager', function(req, res) {
+
+    var finalList = [];
+    parseXlsx('uploads/orderlist.xlsx', function(err, data) {
+        if (err) throw err;
+        var map = {};
+        //   console.log(data);
+        console.log(data);
+        data.forEach(function(object) {
+            if (object[5] !== "" && object[5] !== "ID") {
+                map[object[5]] = map[object[5]] || [];
+                map[object[5]].push(object);
+            }
+        });
+        //   console.log(map);
+        for (var personid in map) {
+            var order = {};
+            var template = "";
+            var sno = 1;
+            var consumer_name = "";
+            var consumer_address = "";
+            var consumer_mobile = "";
+            var total = 0;
+            var date = "";
+            var item_list = map[personid];
+            var exceldate = "";
+            // console.log(item_list);
+
+            var invoice_items = [];
+            var total = 0;
+            item_list.forEach(function(item) {
+                var invoice_item = {};
+                date = formatDate(new Date((item[4] - (25567 + 1)) * 86400 * 1000));
+                exceldate = item[4];
+                consumer_name = item[6];
+                consumer_address = item[8];
+                consumer_mobile = item[9];
+                item_name = item[0];
+                item_quantity = item[1];
+                item_price = item[2];
+                resultant_price = item[3];
+                invoice_item.name = item_name;
+                invoice_item.quantity = item_quantity;
+                invoice_item.unit_cost = item_price;
+                invoice_item.act_cost = resultant_price;
+                invoice_items.push(invoice_item);
+                total += parseFloat(resultant_price);
+            });
+            var wa_message = "Hi " + consumer_name + ", Thanks for ordering from Urban Straw. Your order value is Rs." + total + " and the receipt is attached. It would be delivered to you by 6 PM today.\r\nDo give your feedback and follow us on Facebook at www.facebook.com/urbanstraw.\r\nThanks for making a wise decision. \r\nHave a great day!"
+            order.consumer_name = consumer_name;
+            order.consumer_id = personid;
+            order.consumer_address = consumer_address;
+            order.consumer_mobile = "9632484007"; //consumer_mobile;
+            order.itemList = invoice_items;
+            order.wa_message = wa_message;
+            order.total = total;
+            order.invoice_path = consumer_name + date + "US2018" + (personid) + "" + exceldate + '.pdf';
+            finalList.push(order);
+        };
+        //     console.log(i);
+        res.render("order-manager/index.ejs", { orders: finalList });
+    });
+});
 
 app.get('/gr', function(req, res) {
 
@@ -129,6 +194,14 @@ app.get('/gr', function(req, res) {
         };
     });
     res.end("Pdfs will be generated shortly. Visit : http://urbanstraw.com:3030 to download files");
+});
+
+
+
+
+app.get('/download/:id', function(req, res) {
+    console.log("helo");
+    res.download(invoice_upload_path + req.params.id);
 });
 
 var server = app.listen(3000, function() {

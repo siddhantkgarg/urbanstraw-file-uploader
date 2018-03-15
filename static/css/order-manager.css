@@ -1,0 +1,26 @@
+.name-card {
+    margin: 10px;
+    padding: 10px;
+}
+
+.download-invoice {
+    margin: 2px;
+}
+
+.call-btn {
+    margin: 2px
+}
+
+.all-cards {
+    text-align: center;
+    ;
+}
+
+td {
+    padding: 2px !important;
+    margin: 1px !important;
+}
+
+a {
+    color: white;
+}

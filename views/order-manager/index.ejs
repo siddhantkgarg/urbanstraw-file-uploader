@@ -1,0 +1,46 @@
+<html>
+<link rel="stylesheet" href="static/css/bootstrap.min.css">
+<link rel="stylesheet" href="static/css/order-manager.css">
+
+<body>
+    <div class="container">
+        <h1> Today's orders:</h1>
+        <div class="row">
+            <% for(var i=0; i<orders.length; i++) {%>
+                <div class="card bg-light text-dark col-md-12" align="center">
+                    <%= orders[i].consumer_name %>
+                        <br/>
+                        <div class="table-responsive">
+                            <table class="table-striped">
+                                <tbody>
+                                    <thead>
+                                        <th>Items</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                                    </thead>
+                                    <% for(var j=0; j<orders[i].itemList.length; j++) {%>
+                                        <tr>
+                                            <td>
+                                                <%= orders[i].itemList[j].name %>
+                                            </td>
+                                            <td>
+                                                <%= orders[i].itemList[j].quantity %>
+                                            </td>
+                                            <td>
+                                                <%= orders[i].itemList[j].act_cost %>
+                                            </td>
+                                        </tr>
+                                        <%  } %>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="download-invoice btn btn-danger"><a href="/download/<%= orders[i].invoice_path%>"> download Invoice </a></div>
+                        <div class=" call-btn btn btn-success">
+                            <a href="https://api.whatsapp.com/send?phone=91<%=orders[i].consumer_mobile %>&text=<%=orders[i].wa_message%>">Send Whatsapp</a></div>
+                </div>
+                <%  } %>
+        </div>
+    </div>
+</body>
+
+</html>
