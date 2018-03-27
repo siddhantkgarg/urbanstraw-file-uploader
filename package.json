@@ -10,11 +10,21 @@
   "license": "MIT",
   "dependencies": {
     "await": "^0.2.6",
+    "crypto-js": "^3.1.9-1",
     "delay": "^2.0.0",
     "ejs": "^2.5.7",
     "excel": "^0.1.7",
     "express": "^4.13.3",
     "formidable": "^1.0.17",
-    "html-pdf": "^2.2.0"
+    "gm": "^1.23.1",
+    "gs": "0.0.2",
+    "html-pdf": "^2.2.0",
+    "mysql": "^2.15.0",
+    "node-waf": "^1.0.0",
+    "nodeJs-zip": "^1.0.4",
+    "pdf-image": "^1.0.5",
+    "pdf2img": "^0.5.0",
+    "pdf2png": "^1.0.5",
+    "tinyurl": "^1.1.2"
   }
 }
