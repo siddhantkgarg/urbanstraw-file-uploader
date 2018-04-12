@@ -25,6 +25,7 @@
     "pdf-image": "^1.0.5",
     "pdf2img": "^0.5.0",
     "pdf2png": "^1.0.5",
+    "python-shell": "^0.5.0",
     "tinyurl": "^1.1.2"
   }
 }

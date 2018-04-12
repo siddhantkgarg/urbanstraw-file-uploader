@@ -8,13 +8,30 @@
     position: center;
 }
 
-.link-div a {
+.link-div a { 
+    background : grey;
+    border : 2px solid;
     color: black;
+    border-radius : 2px;
+    margin:3px;
+    padding : 2px;
 }
 </style>
 
 <body>
+ Step 0 : Upload orderlist.xlsx on urbanstraw.com:3000/ . 
+<br/> Step 1 : Generate Reciepts.
+<br/> Step 2 : Generate Image reciepts if required, not using it now as need to figure out if multiple pages pdf present.
+ <br/>Step 3 : Send invoice and promotional messages.
+
     <div class="link-div">
+        <div class="row">
+            <a href="/gr">Generate PDF reciept</a>
+        </div>
+	<div class="row">
+            <a href="/gr-img">Generate IMG reciept</a>
+        </div>
+
         <div class="row">
             <a href="/send-invoice">Order Confirmation</a>
         </div>

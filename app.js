@@ -12,6 +12,23 @@ var con = mysql.createConnection({
     database: 'test_urbanstraw'
 });
 
+
+
+
+
+var pdf = require('html-pdf');
+//var html = fs.readFileSync('./views/know-your-veggies.html', 'utf8');
+
+
+var options = { format: 'Letter' };
+
+app.get('/test', function(req, res) {
+    pdf.create('<html><body>Hello</body></html>', options).toFile('./uploads/invoices/testcard.pdf', function(err, res) {
+        if (err) return console.log(err);
+        console.log(res); // { filename: '/app/businesscard.pdf' }
+    });
+});
+
 const invoice_upload_path = './uploads/invoices/';
 //var PDFImage = require("pdf-image").PDFImage;
 var pdf2img = require('pdf2img');
@@ -150,6 +167,8 @@ app.get('/send-invoice', function(req, res) {
             order.total = total;
             var upload_path = invoice_upload_path + invoice_date + '/';
             order.invoice_path = upload_path + consumer_name + date + "US2018" + (personid) + "" + exceldate + '.pdf';
+            order.img_path = upload_path+'img/' + consumer_name + date + "US2018" + (personid) + "" + exceldate + '.jpg';
+
             finalList.push(order);
         };
         //     console.log(i);
@@ -213,37 +232,45 @@ app.get('/gr', function(req, res) {
                 currency: "INR",
                 number: "US2018" + (personid) + "" + exceldate,
                 payment_terms: "",
-                notes: "This is not to be treated as tax invoice.",
+                notes: "This is not to be treated as Tax invoice.",
                 quantity_header: 'Quantity(kg)',
                 balance_title: 'Amount ',
                 items: invoice_items,
                 date: date,
                 fields: {
-                    "discounts": true,
+//                    "discounts": true,
                     "shipping": true
                 },
                 shipping: 30,
-                discounts: 30
+  //              discounts: 30
             };
             var invoice_name = (consumer_name + date + invoice_data.number);
-            invoice_name.trim();
+            invoice_name= invoice_name.replace(" ","-");
             var upload_path = invoice_upload_path + invoice_path_date + '/';
             if (!fs.existsSync(upload_path)) {
                 fs.mkdirSync(upload_path);
             }
             invoice_util.generateInvoice(invoice_data, upload_path + invoice_name + '.pdf', function(msg) {
-                // pdf2img.convert(upload_path + invoice_name + '.pdf', function(err, info) {
-                //     if (err) console.log(err)
-                //     else console.log(info); // });
-            }, function(err) {
-                console.log(err)
             });
         };
     });
     res.end("Pdfs will be generated shortly. Visit : http://urbanstraw.com:3030 to download files");
 });
 
-
+app.get('/gr-img/:date',function(req,res){
+        var PythonShell = require('python-shell');
+	var date = req.params.date;
+        if(typeof date == "undefined" || date==""){
+		res.end("add date to url: eg .(www.urbanstraw.com:3000/gr-img/2018-3-27). Refer to date folder created on urbanstraw.com:3030");
+	}
+	var options = {
+  		args: [date]
+	};
+	PythonShell.run('pdf2image.py',options, function (err) {
+	  if (err) throw err;
+	   res.end('generated images from pdfs');
+	});
+});
 
 app.get('/delivery-reminder', function(req, res) {
     var finalList = [];
@@ -384,6 +411,12 @@ app.get('/download/uploads/invoices/:date/:id', function(req, res) {
     console.log("helo");
     res.download('uploads/invoices/' + req.params.date + '/' + req.params.id);
 });
+
+app.get('/download/uploads/invoices/:date/img/:id', function(req, res) {
+    console.log("helo");
+    res.download('uploads/invoices/' + req.params.date + '/img/' + req.params.id);
+});
+
 
 var server = app.listen(3000, function() {
     console.log('Server listening on port 3000');

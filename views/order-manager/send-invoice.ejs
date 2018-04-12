@@ -44,7 +44,9 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="download-invoice btn btn-danger"><a href="/download/<%= orders[i].invoice_path%>"> download Invoice </a></div>
+                        <div class="download-invoice btn btn-danger"><a href="/download/<%= orders[i].invoice_path%>"> download pdf Invoice </a></div>
+                        <div class="download-invoice btn btn-info"><a href="/download/<%= orders[i].img_path%>"> download image Invoice </a></div>
+
                         <div class=" call-btn btn btn-success">
                             <a href="https://api.whatsapp.com/send?phone=91<%=orders[i].consumer_mobile %>&text=<%=orders[i].wa_message%>">Send Whatsapp</a></div>
                 </div>
