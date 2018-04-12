@@ -4,6 +4,13 @@ var path = require('path');
 var formidable = require('formidable');
 var fs = require('fs');
 
+var pdf = require('html-pdf');
+
+
+
+var options = { format: 'Letter' };
+
+
 var mysql = require('mysql');
 var con = mysql.createConnection({
     host: "localhost",
@@ -74,6 +81,8 @@ app.use('/uploads/invoices', express.static('download'))
 app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, 'views/index.html'));
 });
+
+
 
 app.post('/upload', function(req, res) {
 
@@ -167,7 +176,7 @@ app.get('/send-invoice', function(req, res) {
             order.total = total;
             var upload_path = invoice_upload_path + invoice_date + '/';
             order.invoice_path = upload_path + consumer_name + date + "US2018" + (personid) + "" + exceldate + '.pdf';
-            order.img_path = upload_path+'img/' + consumer_name + date + "US2018" + (personid) + "" + exceldate + '.jpg';
+            order.img_path = upload_path + 'img/' + consumer_name + date + "US2018" + (personid) + "" + exceldate + '.jpg';
 
             finalList.push(order);
         };
@@ -203,6 +212,7 @@ app.get('/gr', function(req, res) {
             var date = "";
             var item_list = map[personid];
             var exceldate = "";
+            var discount = 0;
             // console.log(item_list);
 
             var invoice_items = [];
@@ -215,6 +225,7 @@ app.get('/gr', function(req, res) {
                 consumer_name = item[6];
                 consumer_address = item[8];
                 consumer_mobile = item[9];
+                discount = parseInt(item[11]);
                 item_name = item[0];
                 item_quantity = item[1];
                 item_price = item[2];
@@ -237,40 +248,120 @@ app.get('/gr', function(req, res) {
                 balance_title: 'Amount ',
                 items: invoice_items,
                 date: date,
+
                 fields: {
-//                    "discounts": true,
+                    "discounts": discount > 0 ? true : false,
                     "shipping": true
                 },
                 shipping: 30,
-  //              discounts: 30
+                discounts: discount > 0 ? discount : 0
             };
             var invoice_name = (consumer_name + date + invoice_data.number);
-            invoice_name= invoice_name.replace(" ","-");
+            invoice_name = invoice_name.replace(" ", "-");
             var upload_path = invoice_upload_path + invoice_path_date + '/';
             if (!fs.existsSync(upload_path)) {
                 fs.mkdirSync(upload_path);
             }
-            invoice_util.generateInvoice(invoice_data, upload_path + invoice_name + '.pdf', function(msg) {
+            invoice_util.generateInvoice(invoice_data, upload_path + invoice_name + '.pdf', function(msg) {});
+        };
+    });
+    res.end("Pdfs will be generated shortly. Visit : http://urbanstraw.com:3030 to download files");
+});
+
+app.get('/gr-img/:date', function(req, res) {
+    var PythonShell = require('python-shell');
+    var date = req.params.date;
+    if (typeof date == "undefined" || date == "") {
+        res.end("add date to url: eg .(www.urbanstraw.com:3000/gr-img/2018-3-27). Refer to date folder created on urbanstraw.com:3030");
+    }
+    var options = {
+        args: [date]
+    };
+    PythonShell.run('pdf2image.py', options, function(err) {
+        if (err) throw err;
+        res.end('generated images from pdfs');
+    });
+});
+
+app.get('/generate-tracklist', function(req, res) {
+
+    parseXlsx('uploads/orderlist.xlsx', function(err, data) {
+        if (err) throw err;
+        var map = {};
+        //   console.log(data);
+        data.forEach(function(object) {
+            if (object[5] !== "" && object[5] !== "ID") {
+                map[object[5]] = map[object[5]] || [];
+                map[object[5]].push(object);
+            }
+        });
+
+        for (var personid in map) {
+            console.log(personid);
+            var template = "";
+            var sno = 1;
+            var consumer_name = "";
+            var consumer_address = "";
+            var consumer_mobile = "";
+            var total = 0;
+            var date = "";
+            var item_list = map[personid];
+            var exceldate = "";
+
+            // console.log(item_list);
+
+            var invoice_items = [];
+            var invoice_path_date = "";
+            var item_body = "";
+            item_list.forEach(function(item) {
+                var invoice_item = {};
+                date = formatDate(new Date((item[4] - (25567 + 1)) * 86400 * 1000));
+                invoice_path_date = formatSQL(new Date((item[4] - (25567 + 1)) * 86400 * 1000), 0);
+                exceldate = item[4];
+                consumer_name = item[6];
+                consumer_address = item[8];
+                consumer_mobile = item[9];
+                item_name = item[0];
+                item_quantity = item[1];
+                item_price = item[2];
+                resultant_price = item[3];
+                invoice_item.name = item_name;
+                var sourced_from = item[12];
+                var harvested_on = formatDate(new Date((item[13] - (25567)) * 86400 * 1000));
+                // var freshness_score = item[14];
+                item_body += '<tr><td>' + item_name + '</td><td>' + sourced_from + '</td><td>' + harvested_on + '</td></tr>';
+                invoice_item.description = item[12];
+                invoice_items.push(invoice_item);
+            });
+            var invoice_data = {
+                logo: "http://urbanstraw.com/dist/img/logo.png",
+                header: 'Know Your Products',
+                payment_terms: "",
+                quantity_header: 'Sourced From',
+                items: invoice_items,
+                date: date,
+            };
+            var html = fs.readFileSync('./views/know-your-veggies.html', 'utf8');
+            html = html.replace('{{consumer-name}}', consumer_name);
+            html = html.replace('{{item-body}}', item_body);
+
+            var invoice_name = (consumer_name + date + invoice_data.number);
+            invoice_name.trim();
+            var upload_path = invoice_upload_path + 'know-your-veggies2/' + invoice_path_date + '/';
+            if (!fs.existsSync(upload_path)) {
+                fs.mkdirSync(upload_path);
+            }
+
+            pdf.create(html, options).toFile(upload_path + invoice_name + '.pdf', function(err, res) {
+                if (err) return console.log(err);
+                console.log(res); // { filename: '/app/businesscard.pdf' }
             });
         };
     });
     res.end("Pdfs will be generated shortly. Visit : http://urbanstraw.com:3030 to download files");
 });
 
-app.get('/gr-img/:date',function(req,res){
-        var PythonShell = require('python-shell');
-	var date = req.params.date;
-        if(typeof date == "undefined" || date==""){
-		res.end("add date to url: eg .(www.urbanstraw.com:3000/gr-img/2018-3-27). Refer to date folder created on urbanstraw.com:3030");
-	}
-	var options = {
-  		args: [date]
-	};
-	PythonShell.run('pdf2image.py',options, function (err) {
-	  if (err) throw err;
-	   res.end('generated images from pdfs');
-	});
-});
+
 
 app.get('/delivery-reminder', function(req, res) {
     var finalList = [];
@@ -388,7 +479,7 @@ app.get('/feedback-msg', function(req, res) {
                 invoice_items.push(invoice_item);
                 total += parseFloat(resultant_price);
             });
-            var wa_message = "Hi " + consumer_name + ", Thanks for ordering from Urban Straw. Your order value is Rs." + total + " and the receipt is attached. It would be delivered to you by 6 PM today.\r\nDo give your feedback and follow us on Facebook at www.facebook.com/urbanstraw.\r\nThanks for making a wise decision. \r\nHave a great day!";
+            //  var wa_message = "Hi " + consumer_name + ", Thanks for ordering from Urban Straw. Your order value is Rs." + total + " and the receipt is attached. It would be delivered to you by 6 PM today.\r\nDo give your feedback and follow us on Facebook at www.facebook.com/urbanstraw.\r\nThanks for making a wise decision. \r\nHave a great day!";
             var wa_msg_2 = "Thanks for making a wise decision. Give us feedback so that we can improve more.%0AGet 20%25 off on next order with free delivery by sharing photos of your dish prepared with our produce on Facebook and tagging us.%0AFollow us on Facebook at www.facebook.com/urbanstraw";
             order.consumer_name = consumer_name;
             // order.consumer_id = personid;
@@ -457,6 +548,9 @@ app.get('/generate-track-url', function(oreq, ores) {
     });
     ores.end("Generating short urls");
 });
+
+
+
 
 app.get('/kyv/:id', function(req, res) {
     var id = req.params.id;
